@@ -1,4 +1,7 @@
 defmodule Planner.Producer do
+  @moduledoc """
+    планировщик
+  """
   use GenStage
   require Logger
   alias Planner.Storage
@@ -17,6 +20,7 @@ defmodule Planner.Producer do
   ## API
 
   # апи для пинка
+  # Producer.schedule({Module, :function, [arg1, arg1, ..]}, {:unix, 1523622513603}}, period: {:second, second})
   def schedule(mfa_term, time_doit, opts \\ []) do
     %{mfa_term: mfa_term, time_doit: time_doit, opts: opts}
     |> parse_time()
@@ -52,6 +56,7 @@ defmodule Planner.Producer do
   defp parse_time(%{time_doit: time_doit}), do: {:error, "Can't parse time #{inspect time_doit}"}
 
   # парсим период
+  # {:second, second} | {:minute, minute} | {:hour, hour} | {:day, day}
   defp parse_period({:error, _} = e), do: e
   defp parse_period({:ok, %{opts: []} = storage_map}) do
     {:ok, Map.merge(storage_map, %{period: :no_period})}
