@@ -10,6 +10,8 @@ defmodule Planner.Application do
     children = [
       # Starts a worker by calling: Planner.Worker.start_link(arg)
       # {Planner.Worker, arg},
+      {Planner.Scheduling.Producer, []},
+      {Planner.Scheduling.Sup, []},
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html
