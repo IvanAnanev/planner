@@ -2,8 +2,8 @@ defmodule Planner do
   alias Planner.Scheduling.Producer
   alias Planner.Scheduling.SomeModule
 
-  @count 10_000
-  @some_time 12 * 60 * 60_000 # 12 hours
+  @count 100
+  @some_time 60_000 # 1 minute
 
   def hello do
     :observer.start

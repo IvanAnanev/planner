@@ -11,6 +11,7 @@ defmodule Planner.Scheduling.Storage do
   def start_link(_), do: GenServer.start_link(__MODULE__, :ok, name: __MODULE__)
 
   def init(_) do
+    Process.flag(:trap_exit, true)
     {:ok, %{}, {:continue, :init_dets}}
   end
 
@@ -52,11 +53,19 @@ defmodule Planner.Scheduling.Storage do
     {:reply, response, state}
   end
 
+  def terminate(reason, state) do
+    :dets.close(@schedule_dets)
+    Logger.info("close dets storage")
+
+    reason
+  end
+
   defp reschedule_dets() do
     case :dets.first(@schedule_dets) do
       :"$end_of_table" ->
         Logger.info("end init dets")
         :ok
+
       key -> reschedule_record(key)
     end
   end
@@ -68,6 +77,7 @@ defmodule Planner.Scheduling.Storage do
       diff_time when diff_time > 0 ->
         ref = Process.send_after(Producer, {:schedule, {mfa_term, period}}, diff_time)
         :dets.insert(@schedule_dets, {mfa_term, ref, time_doit, period})
+
       _ ->
         Process.send(Producer, {:schedule, {mfa_term, period}}, [])
     end
@@ -76,6 +86,7 @@ defmodule Planner.Scheduling.Storage do
       :"$end_of_table" ->
         Logger.info("end init dets")
         :ok
+
       next_key -> reschedule_record(next_key)
     end
   end
