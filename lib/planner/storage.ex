@@ -1,6 +1,6 @@
-defmodule Planner.Scheduling.Storage do
+defmodule Planner.Storage do
   use GenServer
-  alias Planner.Scheduling.Producer
+  alias Planner.Producer
   require Logger
 
   @schedule_dets :schedule_dets

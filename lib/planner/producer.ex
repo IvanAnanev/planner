@@ -1,7 +1,7 @@
-defmodule Planner.Scheduling.Producer do
+defmodule Planner.Producer do
   use GenStage
   require Logger
-  alias Planner.Scheduling.Storage
+  alias Planner.Storage
 
   @second 1_000
   @minute 60_000
@@ -120,7 +120,7 @@ defmodule Planner.Scheduling.Producer do
 
   # здесь принимаем пинок о запуске планировщика
   # который можно будет сделать так
-  # Process.send_after(Planner.Scheduling.Producer, {:schedule, mfa_term}, time_different)
+  # Process.send_after(Planner.Producer, {:schedule, mfa_term}, time_different)
   def handle_info({:schedule, mfa_term}, {queue, demand}) do
     dispatch(:queue.in(mfa_term, queue), demand, [])
   end

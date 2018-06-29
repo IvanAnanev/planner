@@ -1,6 +1,6 @@
 defmodule Planner do
-  alias Planner.Scheduling.Producer
-  alias Planner.Scheduling.SomeModule
+  alias Planner.Producer
+  alias Planner.SomeModule
 
   @count 100
   @some_time 60_000 # 1 minute

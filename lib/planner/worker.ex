@@ -1,8 +1,9 @@
-defmodule Planner.Scheduling.Worker do
-  alias Planner.Scheduling.Storage
+defmodule Planner.Worker do
+  alias Planner.Storage
+  require Logger
 
   def start_link(msg_term) do
-    IO.inspect msg_term
+    Logger.info("Doit #{inspect msg_term}")
     execute(msg_term)
   end
 
@@ -32,7 +33,7 @@ defmodule Planner.Scheduling.Worker do
 
   # пинаем шедулер для повторного запуска и переписываем dets c новой ref
   defp reschedule(mfa, %{unix: diff} = period) do
-    ref = Process.send_after(Planner.Scheduling.Producer, {:schedule, {mfa, period}}, diff)
+    ref = Process.send_after(Planner.Producer, {:schedule, {mfa, period}}, diff)
     time_doit_unix = :os.system_time(:millisecond) + diff
     time_doit_iso8601 = time_doit_unix |> DateTime.from_unix!(:millisecond) |> DateTime.to_iso8601()
     Storage.set({mfa, ref, %{unix: time_doit_unix, iso8601: time_doit_iso8601}, period})
