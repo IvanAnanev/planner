@@ -56,7 +56,7 @@ defmodule Planner.Producer do
   defp parse_time(%{time_doit: time_doit}), do: {:error, "Can't parse time #{inspect time_doit}"}
 
   # парсим период
-  # {:second, second} | {:minute, minute} | {:hour, hour} | {:day, day}
+  # :no_period | {:second, seconds} | {:minute, minutes} | {:hour, hours} | {:day, days}
   defp parse_period({:error, _} = e), do: e
   defp parse_period({:ok, %{opts: []} = storage_map}) do
     {:ok, Map.merge(storage_map, %{period: :no_period})}
