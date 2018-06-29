@@ -1,4 +1,6 @@
 defmodule Planner.Scheduling.Worker do
+  alias Planner.Scheduling.Storage
+
   def start_link(msg_term) do
     IO.inspect msg_term
     execute(msg_term)
@@ -18,14 +20,14 @@ defmodule Planner.Scheduling.Worker do
 
   # запуск
   defp doit({module, function, args}) do
-    Task.start_link(fn ->
+    Task.start fn ->
       apply(module, function, args)
-    end)
+    end
   end
 
   # чистим dets schedulinga
   defp delete_ref(mfa) do
-    :dets.delete(:schedule_dets, mfa)
+    Storage.delete(mfa)
   end
 
   # пинаем шедулер для повторного запуска и переписываем dets c новой ref
@@ -33,6 +35,6 @@ defmodule Planner.Scheduling.Worker do
     ref = Process.send_after(Planner.Scheduling.Producer, {:schedule, {mfa, period}}, diff)
     time_doit_unix = :os.system_time(:millisecond) + diff
     time_doit_iso8601 = time_doit_unix |> DateTime.from_unix!(:millisecond) |> DateTime.to_iso8601()
-    :dets.insert(:schedule_dets, {mfa, ref, %{unix: time_doit_unix, iso8601: time_doit_iso8601}, period})
+    Storage.set({mfa, ref, %{unix: time_doit_unix, iso8601: time_doit_iso8601}, period})
   end
 end

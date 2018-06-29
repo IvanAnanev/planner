@@ -10,6 +10,7 @@ defmodule Planner.Application do
     children = [
       # Starts a worker by calling: Planner.Worker.start_link(arg)
       # {Planner.Worker, arg},
+      {Planner.Scheduling.Storage, []},
       {Planner.Scheduling.Producer, []},
       {Planner.Scheduling.Sup, []},
     ]

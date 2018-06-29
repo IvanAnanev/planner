@@ -1,25 +1,18 @@
 defmodule Planner.Scheduling.Producer do
   use GenStage
   require Logger
-
-  def start_link(_) do
-    GenStage.start_link(__MODULE__, :ok, name: __MODULE__)
-  end
-
-  @schedule_dets :schedule_dets
-  @schedule_dets_file 'schedule_dets_file'
+  alias Planner.Scheduling.Storage
 
   @second 1_000
   @minute 60_000
   @hour   3_600_000
   @day    86_400_000
 
-  ## Callbacks
+  ## init
 
-  def init(_) do
-    GenServer.cast(__MODULE__, :init_dets)
-    {:producer, {:queue.new(), 0}, dispatcher: GenStage.BroadcastDispatcher}
-  end
+  def start_link(_), do: GenStage.start_link(__MODULE__, :ok, name: __MODULE__)
+
+  def init(_), do: {:producer, {:queue.new(), 0}, dispatcher: GenStage.BroadcastDispatcher}
 
   ## API
 
@@ -82,7 +75,7 @@ defmodule Planner.Scheduling.Producer do
   # отменяем старый таймер для mfa_term
   defp cancel_old_timer({:error, _} = e), do: e
   defp cancel_old_timer({:ok, %{mfa_term: mfa_term}} = ok) do
-    case :dets.lookup(@schedule_dets, mfa_term) do
+    case Storage.get(mfa_term) do
       [{_mfa, ref, _time_doit, _period}] -> Process.cancel_timer(ref)
       [] -> :ok
     end
@@ -117,49 +110,13 @@ defmodule Planner.Scheduling.Producer do
   defp save_ref({:error, _} = e), do: e
   defp save_ref({:ok, %{ref: :no_ref}} = ok), do: ok
   defp save_ref({:ok, %{mfa_term: mfa_term, time_doit: time_doit, period: period, ref: ref}} = ok) do
-    :dets.insert(@schedule_dets, {mfa_term, ref, time_doit, period})
+    Storage.set({mfa_term, ref, time_doit, period})
     ok
   end
 
-  defp log(result), do: IO.inspect(result)
+  defp log(result), do: Logger.info("schedule #{inspect(result)}")
 
-  # инитим таблицу
-  def handle_cast(:init_dets, state) do
-    Logger.info("start init dets")
-    # открываем dets
-    :dets.open_file(@schedule_dets, [type: :set, file: @schedule_dets_file])
-    # перезапускаем таймеры
-    reschedule_dets()
-    {:noreply, [], state}
-  end
-
-  defp reschedule_dets() do
-    case :dets.first(@schedule_dets) do
-      :"$end_of_table" ->
-        Logger.info("end init dets")
-        :ok
-      key -> reschedule_record(key)
-    end
-  end
-
-  defp reschedule_record(key) do
-    Logger.info("reschedule #{inspect key}")
-    [{mfa_term, _ref, time_doit, period}] = :dets.lookup(@schedule_dets, key)
-    case time_doit.unix - :os.system_time(:millisecond) do
-      diff_time when diff_time > 0 ->
-        ref = Process.send_after(__MODULE__, {:schedule, {mfa_term, period}}, diff_time)
-        :dets.insert(@schedule_dets, {mfa_term, ref, time_doit, period})
-      _ ->
-        Process.send(__MODULE__, {:schedule, {mfa_term, period}}, [])
-    end
-    # используем механизм first next, что б не перегружать память обработки всех записей
-    case :dets.next(@schedule_dets, key) do
-      :"$end_of_table" ->
-        Logger.info("end init dets")
-        :ok
-      next_key -> reschedule_record(next_key)
-    end
-  end
+  ## Callbacks
 
   # здесь принимаем пинок о запуске планировщика
   # который можно будет сделать так
